@@ -1,5 +1,5 @@
-:Namespace efa ⍝ V3.01
-⍝ 2022 01 19 MKrom: Complete rewrite for v18.2
+﻿:Namespace efa ⍝ V3.01
+⍝ 2022 01 19 MKrom: Complete rewrite for v18.2 
 
 ⍝∇:require =\WinReg.dyalog
 
@@ -56,9 +56,9 @@
 
     ∇ r←level Help Cmd
       r←⊂DESC
-      r,←⊂'    ]',Cmd,' version|status|details|remove|backup -preview'
-      r,←⊂'                 -dir=show|hide -workspace=run|load -config=edit|run -dyapp=edit|run '
-      r,←⊂'                 -source=edit|run|load -script=run|edit '
+      r,←⊂'    ]',Cmd,' version|status|details|remove|backup -preview -dir=show|hide'
+      r,←⊂'                 -workspace=run|load script=run|edit -dyapp=run|edit '
+      r,←⊂'                 -source=edit|run|load -config=edit|run'
       r,←⊂'                 -user=current|all'
           
       →(level=0)⍴0
@@ -292,7 +292,7 @@
       :EndSelect
     ∇
 
-    ∇ (msg str bin del)←BuildReg(path vernum REG opts);types;str;bin;mask;Text;dws;dyapp;dyalog;Icon1;script;pv;clsid;dn;type;extns;name;key;icons;values;default;subkeys;delete;todelete;i;labels;dir;EditCmd;PreviewCmd;RunCmd;RunShCmd;LoadCmd;DyalogIcon;EditorIcon;actionicons;subs;cmds;editcmd;loadcmd;runcmd;EditWithNotepad;ft;pvnum;pvpath;versions;Version;ver;shell;RunDyappCmd
+    ∇ (msg str bin del)←BuildReg(path vernum REG opts);types;str;bin;mask;Text;dws;dyapp;dyalog;Icon1;script;pv;clsid;dn;type;extns;name;key;icons;values;default;subkeys;delete;todelete;i;labels;dir;EditCmd;PreviewCmd;RunCmd;RunShCmd;LoadCmd;DyalogIcon;EditorIcon;actionicons;subs;cmds;editcmd;loadcmd;runcmdEditWithNotepad;ft;pvnum;pvpath;versions;Version;ver;shell;RunDyappCmd
     ⍝ Builds data to be written to registry
      
       str←bin←0 2⍴'' ⍝ String and Binary values to set
@@ -319,11 +319,11 @@
           EditCmd←'"',path,'dyalogrt.exe" -EDITONLY "%1"'
           (RunCmd LoadCmd)←('LOAD='⎕R'')RunCmd LoadCmd
       :EndIf
-     
+
       :If opts.qa_mode ⍝ When doing QA...
           (pvnum pvpath)←vernum path                     ⍝ Always use the requested version
       :Else
-      pvnum←⊃2⊃⎕VFI GetVersion pvpath←opts.lastUpath ⍝ Latest installed Unicode version
+          pvnum←⊃2⊃⎕VFI GetVersion pvpath←opts.lastUpath ⍝ Latest installed Unicode version
       :EndIf     
 
       :If pvnum≥17
@@ -388,7 +388,7 @@
               runcmd←RunShCmd
           :ElseIf type≡'dyapp'
               editcmd←EditWithNotepad
-              icons←(~labels∊⊂'Edit')/¨icons    ⍝ No icon for Edit since we use Notepad
+              icons←(~labels∊⊂'Edit')/¨icons    ⍝ No icon for Edit since we use Notepad 
               runcmd←RunDyappCmd
           :ElseIf type≡'dcfg'
               (loadcmd runcmd)←('LOAD='⎕R'CONFIGFILE=')loadcmd runcmd
@@ -509,7 +509,7 @@
      
       :If Args.(confirm∨preview)
           ⎕PW←1000
-          ⎕←'In order to prepare for use of ',Args._1
+          ⎕←'In order to prepare for use of ',Args._1,' for ',(1 ⎕C Args.user)
           :If 0≠≢Args.nondefault
               t←1↓∊' ',¨Args.nondefault,¨'=',¨Args⍎¨Args.nondefault
               ⎕←'   (with non-default settings: ',t,')'
