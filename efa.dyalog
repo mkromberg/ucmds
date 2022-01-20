@@ -1,7 +1,10 @@
 ﻿:Namespace efa ⍝ V3.01
-⍝ 2022 01 19 MKrom: Complete rewrite for v18.2 
+⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
+⍝
+⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
 
 ⍝∇:require =\WinReg.dyalog
+
 
     ⎕ml←⎕io←1
     DESC←'Set Windows File Associations for directories and files used by Dyalog APL'
@@ -31,7 +34,7 @@
 
     Cap1st←1∘⎕C@1                                 ⍝ 1st letter uppercase
     GetVersion←{1↓1⍕⊃(//)⎕VFI ⍵}                  ⍝ Get version number of APLVersion string
-    ExistingRegs←{⍵/⍨#.WinReg.DoesKeyExist¨⍵}     ⍝ Filter list of registry keys
+    ExistingRegs←{⍵/⍨##.WinReg.DoesKeyExist¨⍵}     ⍝ Filter list of registry keys
     Hex←{'0123456789abcdef'[1+⍵]}
 
       VersionIDs←{                                ⍝ nn.n[Ubb] format from APL version name
@@ -91,7 +94,7 @@
 
     ∇ rc←Run(Cmd Args);defaults;t;switches;reg
      
-      reg←(1+#.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃'all' 'current' ⍝ -user=current if current settings exist
+      reg←(1+##.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃'all' 'current' ⍝ -user=current if current settings exist
 
       defaults←reg'show','edit' 'run' 'open'['ero'⍳⊃¨FileTypeOpts]
       switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'
@@ -242,7 +245,7 @@
      
       :Select keynames
       :Case 0 ⍝ Get the actual values
-          reg←⊃⍪/{⍵∧.=' ':0 3⍴⊂'' ⋄ #.WinReg.GetTreeWithValues ⍵}¨reg
+          reg←⊃⍪/{⍵∧.=' ':0 3⍴⊂'' ⋄ ##.WinReg.GetTreeWithValues ⍵}¨reg
      
       :Case 1 ⍝ Existing registies - already done
      
