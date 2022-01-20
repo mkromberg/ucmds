@@ -95,7 +95,7 @@
 
       defaults←reg'show','edit' 'run' 'open'['ero'⍳⊃¨FileTypeOpts]
       switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'
-      t←Args.(user dir dcfg dws dyalog dyapp dyalogscript)←defaults{0≡⍵:⍺ ⋄ ⍵}¨Args⍎⍕switches
+      t←Args.(user dir dcfg dws dyalog dyapp dyalogscript)←defaults{0≡⍵:⍺ ⋄ ⍵}¨⎕C Args⍎⍕switches
       ⍝ ↑↑↑ change human-friendly switch names to file type names used in registry to simpify the rest of the code
       Args.nondefault←(defaults≢¨t)/switches ⍝ record names of switches with non-default values
       Args._1←1 ⎕C Args._1 ⍝ Uppercase U and C in version ids
