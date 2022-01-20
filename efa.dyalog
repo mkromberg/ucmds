@@ -48,7 +48,7 @@
       parse←'1S -preview -user=current all -dir=show hide'
       parse,←'-workspace=run load -dyapp=run edit -script=run edit'
       parse,←'-config=edit run -source=edit run '
-      parse,←'-confirm -nobackup'
+      parse,←'-confirm -nobackup -qa_mode'
      
       r.(Name Desc Group Parse)←CMD DESC'MSWIN'parse
       r/⍨←⎕SE.SALTUtils.WIN
@@ -123,7 +123,7 @@
       :If (Args.user≡'all')∧~IsUserAnAdmin
           t←'Select Yes to launch an additional APL process with administrative rights, and rerun the command.' ''
           t,←('If you select No but wish to perform the operation for the current user, include "-user=current" on the ',CMD,' command line.') ''
-          :If ~(⊂'RunTests')∊⎕SI
+          :If ~Args.qa_mode
           :AndIf 'Adminstrative privileges required for -user=all'MsgBoxYN t
                Args.SwD[Args.SwD[;1]⍳⊂'user';2]←⊂'all'
               →0⊣rc←LaunchAdminProcess GenUCMD Args
@@ -320,7 +320,12 @@
           (RunCmd LoadCmd)←('LOAD='⎕R'')RunCmd LoadCmd
       :EndIf
      
+      :If opts.qa_mode ⍝ When doing QA...
+          (pvnum pvpath)←vernum path                     ⍝ Always use the requested version
+      :Else
       pvnum←⊃2⊃⎕VFI GetVersion pvpath←opts.lastUpath ⍝ Latest installed Unicode version
+      :EndIf     
+
       :If pvnum≥17
           PreviewCmd←'"',pvpath,'dyaedit.exe" -PREVIEW'
       :Else
@@ -740,16 +745,18 @@
       ⎕SIGNAL(0∊flag)/11
     ∇
 
-    ∇ r←RunTests;ver;z;ivers;REG;assoc;pv;backup;i;user
+    ∇ r←RunTests;ver;z;ivers;REG;assoc;pv;backup;i;switches
      
       REG←(i←1+#.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃HKLMSC HKCUSC 
-      user←' -user=',i⊃'all' 'current'
-      ⎕←'Running tests with',user
+      switches←' -user=',i⊃'all' 'current'
+      switches,←' -qa_mode' ⍝ Required to block certain behaviours during testing
+
+      ⎕←'Running tests with',switches
      
       ver←GetVersion 2 ⎕NQ'.' 'GetEnvironment' 'Dyalog'
       'Tests require version 18.2 64 Unicode'⎕SIGNAL('18.2'≢ver)/11
      
-      z←⎕SE.UCMD CMD,' ',ver,' -preview',user
+      z←⎕SE.UCMD CMD,' ',ver,' -preview',switches
       'Tests require a fresh installation'⎕SIGNAL('No changes required'≢19↑z)/11
      
       ivers←InstalledVersions
@@ -763,9 +770,9 @@
      
       ⍝ --- Take a backup, switch to and verify 18.0, and finally restore to 18.2 using the backup
      
-      backup←⎕SE.UCMD CMD,' backup',user
+      backup←⎕SE.UCMD CMD,' backup',switches
      
-      z←⎕SE.UCMD CMD,' 18.0 -nobackup',user ⍝ Switch to v18.0 and validate the resulting associations
+      z←⎕SE.UCMD CMD,' 18.0 -nobackup',switches ⍝ Switch to v18.0 and validate the resulting associations
      
       assoc←CurrentAssociations 0
       assert 6=≢assoc
@@ -774,7 +781,7 @@
       assert~∨/('dyalogscript' 'Directories')∊assoc[;1]                            ⍝ 18.0 has no script support
      
       ⎕CMD'reg import "',backup,'"'                                                ⍝ Restore the backup
-      z←⎕SE.UCMD CMD,' ',ver,' -preview',user ⍝ Ask what is now
+      z←⎕SE.UCMD CMD,' ',ver,' -preview',switches ⍝ Ask what is now
       assert'No changes required'≡19↑z                                             ⍝ We should be back to 18.2
      
       ⍝ --- Validate error message when trying to do -user=all and not an Admin
@@ -785,9 +792,9 @@
      
      ⍝ --- Validate we can get rid of Directory associations
      ⍝     --- And change the default for source files to "Run" rather than "Edit"
-      z←⎕SE.UCMD CMD,' 18.2 -dir=hide -source=run -nobackup',user
+      z←⎕SE.UCMD CMD,' 18.2 -dir=hide -source=run -nobackup',switches
      
-      z←⎕SE.UCMD CMD,' details',user
+      z←⎕SE.UCMD CMD,' details',switches
       assert~∨/1∊¨'Directory'∘⍷¨z[;1]  ⍝ No Directory entries
       assert'Run'≡⊃z[1⍳⍨1∊¨'dyalogfile\shell'∘⍷¨z[;1];2]                    ⍝ Default action is Run
       assert 1∊'dyalog.exe",0'⍷⊃z[1⍳⍨1∊¨'dyalogfile\DefaultIcon'∘⍷¨z[;1];2] ⍝ With suitable Icon
