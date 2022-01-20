@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.00
+:Namespace efa ⍝ V3.00
 ⍝ 2022 01 19 MKrom: Complete rewrite for v18.2
 
 ⍝∇:require =\WinReg.dyalog
@@ -292,7 +292,7 @@
       :EndSelect
     ∇
 
-    ∇ (msg str bin del)←BuildReg(path vernum REG opts);types;str;bin;mask;Text;dws;dyapp;dyalog;Icon1;script;pv;clsid;dn;type;extns;name;key;icons;values;default;subkeys;delete;todelete;i;labels;dir;EditCmd;PreviewCmd;RunCmd;RunShCmd;LoadCmd;DyalogIcon;EditorIcon;actionicons;subs;cmds;editcmd;loadcmd;runcmd;EditWithNotepad;ft;pvnum;pvpath;versions;Version;ver;shell
+    ∇ (msg str bin del)←BuildReg(path vernum REG opts);types;str;bin;mask;Text;dws;dyapp;dyalog;Icon1;script;pv;clsid;dn;type;extns;name;key;icons;values;default;subkeys;delete;todelete;i;labels;dir;EditCmd;PreviewCmd;RunCmd;RunShCmd;LoadCmd;DyalogIcon;EditorIcon;actionicons;subs;cmds;editcmd;loadcmd;runcmd;EditWithNotepad;ft;pvnum;pvpath;versions;Version;ver;shell;RunDyappCmd
     ⍝ Builds data to be written to registry
      
       str←bin←0 2⍴'' ⍝ String and Binary values to set
@@ -302,6 +302,7 @@
       EditWithNotepad←'notepad "%1"'
      
       RunCmd←'"',path,'dyalog.exe" LOAD="%1"'
+      RunDyappCmd←'"',path,'dyalog.exe" DYAPP="%1"'
       RunShCmd←'powershell -File "',path,'Samples\scripts\bin\dyalogscript.ps1" "%1" %*'
       LoadCmd←'"',path,'dyalog.exe" -x LOAD="%1"'
      
@@ -383,7 +384,7 @@
           :ElseIf type≡'dyapp'
               editcmd←EditWithNotepad
               icons←(~labels∊⊂'Edit')/¨icons    ⍝ No icon for Edit since we use Notepad
-              runcmd←('LOAD='⎕R'DYAPP=')runcmd
+              runcmd←RunDyappCmd
           :ElseIf type≡'dcfg'
               (loadcmd runcmd)←('LOAD='⎕R'CONFIGFILE=')loadcmd runcmd
           :ElseIf dir
