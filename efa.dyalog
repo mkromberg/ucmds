@@ -1,4 +1,4 @@
-:Namespace efa ⍝ V3.00
+:Namespace efa ⍝ V3.01
 ⍝ 2022 01 19 MKrom: Complete rewrite for v18.2
 
 ⍝∇:require =\WinReg.dyalog
