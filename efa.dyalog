@@ -1,6 +1,7 @@
-﻿:Namespace efa ⍝ V3.01
+﻿:Namespace efa ⍝ V3.02
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
+⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
 
 ⍝∇:require =\WinReg.dyalog
