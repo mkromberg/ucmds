@@ -1,6 +1,7 @@
-:Namespace efa ⍝ V3.02
+﻿:Namespace efa ⍝ V3.03
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
+⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
 
@@ -594,7 +595,7 @@
      
       Text←(FmtCurrent curr),'' 'Select version to associate:'
       cap←'Set File Associations for Dyalog APL'
-      list←FmtVersions vers  
+      list←FmtVersions vers       
       (vers list)←(⊂⍒list)∘⌷¨vers list
       listx←300⌊19×⍴vers
       size←(308+listx),365
@@ -637,7 +638,7 @@
 
     ∇ r←FmtVersions vers;p
       r←(¯1+p←vers⍳¨'-')↑¨vers
-      r←r,¨' ',¨(5⍴'Unicode 64' 'Classic 64' 'Unicode 32' 'Classic 32')['U64' 'C64' 'U32' 'C32'⍳p↓¨vers]
+      r←r,¨' ',¨(5⍴'64-bit Unicode' '64-bit Classic' '32-bit Unicode' '32-bit Classic')['U64' 'C64' 'U32' 'C32'⍳p↓¨vers]
     ∇
 
     ∇ Text←FmtCurrent curr;dws;dyapp;dyalog;script;dir;pv;i
