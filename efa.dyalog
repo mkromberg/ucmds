@@ -216,7 +216,7 @@
       ⍝ Retrieve the list of installed versions of Dyalog APL
      
       hkcu←'HKEY_CURRENT_USER\'
-      sd←'Software\Dyalog\'
+      sd←'Software\Dyalog\'     
       sk←##.WinReg.GetAllSubKeyNames hkcu,sd
       mask←1∊¨'Dyalog APL/'∘⍷¨sk
       r←(⊂sd),¨mask/sk
@@ -593,7 +593,8 @@
      
       Text←(FmtCurrent curr),'' 'Select version to associate:'
       cap←'Set File Associations for Dyalog APL'
-      list←FmtVersions vers
+      list←FmtVersions vers  
+      (vers list)←(⊂⍒list)∘⌷¨vers list
       listx←300⌊19×⍴vers
       size←(308+listx),365
      
@@ -635,7 +636,7 @@
 
     ∇ r←FmtVersions vers;p
       r←(¯1+p←vers⍳¨'-')↑¨vers
-      r←r,¨' ',¨(5⍴'Unicode 64' 'Classic 64' 'Unicode 32' 'Unicode 32')['U64' 'C64' 'U32' 'C32'⍳p↓¨vers]
+      r←r,¨' ',¨(5⍴'Unicode 64' 'Classic 64' 'Unicode 32' 'Classic 32')['U64' 'C64' 'U32' 'C32'⍳p↓¨vers]
     ∇
 
     ∇ Text←FmtCurrent curr;dws;dyapp;dyalog;script;dir;pv;i
