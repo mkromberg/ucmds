@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.02
+:Namespace efa ⍝ V3.02
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
@@ -791,7 +791,7 @@
      
       ⍝ --- Validate error message when trying to do -user=all and not an Admin
       :If ~IsUserAnAdmin
-          z←⎕SE.UCMD CMD,' 18.2 -user=all -nobackup'
+          z←⎕SE.UCMD CMD,' 18.2 -user=all -nobackup -qa_mode'
           assert 1∊' -user=current'⍷z
       :EndIf
      
