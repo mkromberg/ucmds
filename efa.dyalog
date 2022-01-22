@@ -1,6 +1,7 @@
-﻿:Namespace efa ⍝ V3.03
+﻿:Namespace efa ⍝ V3.04
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
+⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
 ⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
@@ -485,7 +486,14 @@
       →(0≠⍴rc←ConfirmRegChanges add remove update Args)⍴0
     ∇
 
-    ∇ file←Backup Args;keys;txt;file;del;hdr
+    ∇ file←Backup Args;keys;txt;file;del;hdr;⎕USING
+      
+      ⎕USING←'Microsoft.Win32'
+      :If 0={6::0 ⋄ ≢,Registry.Users}⍬
+          ⎕←'Unable to take a backup: The available version of .NET does not provide a Registry class.'
+          →0 ⊣ file←''
+      :EndIf
+
       txt←'; First clear out all Dyalog file association registry keys',CR,CR
       txt←,∊'[-'∘,¨(2 ReadReg REG),¨⊂']',CR
       keys←2 ReadReg REG
@@ -553,6 +561,7 @@
       :EndIf
      
       :If ~Args.nobackup
+          rc←'Backup failed. Please try again with -nobackup'
           →(0=≢file←Backup Args)⍴0
           ⎕←'Backup written to ',LastBackupFile←file
       :EndIf
