@@ -2,6 +2,8 @@
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
+⍝ 2022 01 22 MKrom: Fix #10 Unable to close the form
+⍝ 2022 01 22 MKrom: Fix #9 Caption too long
 ⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
@@ -601,9 +603,11 @@
 
     ∇ (ok Args)←SelectGui(vers curr Args);Text;Y;X;vers;size;listx;neither;line1;i;type;dws;dyapp;dyalog;Applications;f;z;list;ok;users;selected;done;cap
     ⍝ Creates GUI
-     
-      Text←(FmtCurrent curr),'' 'Select version to associate:'
-      cap←'Set File Associations for Dyalog APL'
+      
+      Text←('Current associations for ',(1 ⎕C Args.user),(' user',(Args.user≡'all')/'s'),':') ''
+      Text,←FmtCurrent curr
+      Text,←'' 'Select version to associate:'
+      cap←'Edit File Associations'
       list←FmtVersions vers       
       (vers list)←(⊂⍒list)∘⌷¨vers list
       listx←300⌊19×⍴vers
@@ -614,7 +618,7 @@
       'f.fnt'⎕WS'Size' 16
       'f'⎕WS'Event'('Close' 1)
       'f'⎕WS'FontObj' 'f.fnt'
-      'f.msg'⎕WC'Text'(↑Text)(15 15)
+      'f.msg'⎕WC'Text'(↑Text)(10 15)
       'f.list'⎕WC'List'('Items'list)('Posn'(165 30))('Size'(listx,300))('Selitems'(vers∊2↓curr[;2]))('Event' 'MouseDblClick' 1)
      
       'f.dir'⎕WC'Button' '&Show Windows Explorer context menu items for directories'((180+listx),15)('Style' 'Check')('State' (Args.dir≡'show'))    
@@ -631,9 +635,9 @@
       :Repeat
         z←⎕DQ'f'
         ok←(⊂2↑z)∊('f.bapply' 'Select')('f.list' 'MouseDblClick')
-        ok←ok∧1=+/f.list.SelItems
-        :If ~done←ok∨'f.bcancel'≡⊃z
-            cap MsgBoxAlert 'You must select a version!'
+        ok←ok∧1=+/f.list.SelItems  
+        :If ~done←ok∨(⊂z)∊('f.bcancel' 'Select')((,'f') 'Close')
+            cap MsgBoxAlert 'Please select a version.'
         :EndIf
       :Until done                  
       
@@ -654,8 +658,7 @@
       i←curr[;1]⍳'dws' 'dyapp' 'dyalog' 'dyalogscript' 'Directories' 'Source Preview'
       (dws dyapp dyalog script dir pv)←(curr[;2],⊂'(none)')[i]
      
-      Text←⊂'Current associations:'
-      Text,←⊂'      Scripts             (.apls)                    ',script
+      Text←⊂'      Scripts             (.apls)                    ',script
       Text,←⊂'      Sources           (.apl?, .dyalog)     ',dyalog
       Text,←⊂'      SALT apps       (.dyapp)                ',dyapp
       Text,←⊂'      Workspaces    (.dws)                    ',dws
