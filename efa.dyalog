@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.04
+﻿:Namespace efa ⍝ V3.05
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
@@ -7,13 +7,15 @@
 ⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
+⍝ 2022 01 28 Adam:  Report selected version, show correct current version, text and help, work around [19652]
 
 ⍝∇:require =\WinReg.dyalog
 
 
     ⎕ml←⎕io←1
-    DESC←'Set Windows File Associations for directories and files used by Dyalog APL'
-    CMD←' '~⍨NAME←'fileassociations'
+    DESC←'Associate directories and files with a specific Dyalog instance (optionally through a GUI)'
+
+    CMD←' '~⍨NAME←'FileAssociations'
     CR LF←⎕UCS 13 10
 
     PreviewKey   ←'{8895b1c6-b41f-4c1c-a562-0d564250836f}'
@@ -39,21 +41,52 @@
 
     Cap1st←1∘⎕C@1                                 ⍝ 1st letter uppercase
     GetVersion←{1↓1⍕⊃(//)⎕VFI ⍵}                  ⍝ Get version number of APLVersion string
-    ExistingRegs←{⍵/⍨##.WinReg.DoesKeyExist¨⍵}     ⍝ Filter list of registry keys
+    ExistingRegs←{⍵/⍨##.WinReg.DoesKeyExist¨⍵}    ⍝ Filter list of registry keys
     Hex←{'0123456789abcdef'[1+⍵]}
 
       VersionIDs←{                                ⍝ nn.n[Ubb] format from APL version name
-          vers←GetVersion¨⍵
-          tail←'CU'[1+1∊¨'Unicode'∘⍷¨⍵]
-          tail,¨←'32' '64'[1+1∊¨'-64'∘⍷¨⍵]
-          vers,¨(~tail∊⊂'U64')/¨'-',¨tail
+          2≤|≡⍵:∇¨⍵
+          vers←GetVersion ⍵
+          tail←'CU'[1+1∊'Unicode'⍷⍵]
+          tail,←'32' '64'[1+1∊'-64'⍷⍵]
+          ∊vers,(~tail∊⊂'U64')/tail
       }
+
+    ∇ v←defU64 APLversion input;nums;bit;vno;ucs;curvno;defU64;showC32
+     ⍝ Returns an APL version specification matching the format used in the registry (or with added Classic and -32 if showC32) based on arg
+     ⍝ Argument is any combination of the following:
+     ⍝ '##' or '##.#' ⍝ Version number, e.g. '14' or '14.1'
+     ⍝ 'C' or 'U'     ⍝ Classic/Unicode edition of current or specified version
+     ⍝ '32' or '64'   ⍝ 32/64 bit version of current or specified version
+     
+      input←,⍕input
+      input[1↓('.'=input)/⍳⍴input]←' '          ⍝ Remove all but first .
+      input←('32|64' '\pL'⎕R' \u& '⍠1)input     ⍝ 32.1 ←→ 32 .1 ⋄ Uppercase and surround all chars with spaces
+     
+      nums←↑(//)' -/'⎕VFI input
+      :If defU64
+          ucs←' Unicode'/⍨'C'≠⍬⍴input∩'UC'          ⍝ If a U occurs before the first C
+          bit←'-64'/⍨~32∊nums
+      :Else
+          ucs←' Unicode'/⍨'U'=⍬⍴input∩'UC'          ⍝ If a U occurs before the first C
+          bit←'-64'/⍨64∊nums
+      :EndIf
+      ucs,←' Classic'/⍨0=≢ucs
+      bit,←'-32'/⍨0=≢bit
+     
+      vno←|⍬⍴nums~32 64                         ⍝ Don't mistake 32 and 64 for ver nums
+      vno÷←10*¯1+1⌈⌊10⍟0.1⌈vno                  ⍝ 141 ←→ 14.1
+      vno÷←10*33≤vno                            ⍝ 33 ←→ 3.3
+      vno←(1,⍨3+×⌊10⍟0.01⌈vno)⍕vno              ⍝ Include exactly one decimal
+     
+      v←vno,ucs,bit
+    ∇
 
     :Section UCMD
 
     ∇ r←List;parse
       r←⎕NS''
-      parse←'1S -preview -user=current all -dir=show hide'
+      parse←'1SL -preview -user=current all -dir=show hide'
       parse,←'-workspace=run load -dyapp=run edit -script=run edit'
       parse,←'-config=edit run -source=edit run '
       parse,←'-confirm -nobackup -qa_mode'
@@ -62,45 +95,54 @@
       r/⍨←⎕SE.SALTUtils.WIN
     ∇
 
-    ∇ r←level Help Cmd
-      r←⊂DESC
-      r,←⊂'    ]',Cmd,' version|status|details|remove|backup -preview -dir=show|hide'
-      r,←⊂'                 -workspace=run|load script=run|edit -dyapp=run|edit '
-      r,←⊂'                 -source=edit|run|load -config=edit|run'
-      r,←⊂'                 -user=current|all'
-          
-      →(level=0)⍴0
+    ∇ r←level Help Cmd;nl;h
+      h←'    ]',Cmd,' [<instance>|status|details|remove|backup] '
+      h,←'[-preview] [-dir={show|hide}] [-workspace={run|load} [-script={run|edit}] [-dyapp={run|edit}] '
+      h,←'[-source={edit|run|load}] [-config={edit|run}] [-user={current|all}]'
+      r←DESC,nl,h,nl←⎕UCS 13
+      :If level=0
+          r,←nl
+          r,←']',Cmd,' -?? ⍝ for details',nl
+      :Else
+          r,←nl,'Argument is one of:',nl
+          r,←'    ""          use a GUI to select settings (limited functionality)',nl
+          r,←'    <instance>  associate with <instance> (version, edition, bit-width; default edition and bit-width: Unicode and 64)',nl
+          r,←'    "status"    brief report of current associations',nl
+          r,←'    "details"   full report of current associations',nl
+          r,←'    "remove"    remove all current associations',nl
+          r,←'    "backup"    only export current associations to .reg file',nl
+          r,←nl
+          r,←'    <instance> must be one of:',nl
+          r,←'       ',nl,⍨⍕VersionIDs InstalledVersions
+          r,←'    These can be specified in any order and either fully or partially using shorthand:',nl
+          r,←'        ## or ### or ##.#    Version number, for example 14 or 141 or 14.1 (default minor version is .0)',nl
+          r,←'        C or U               Classic/Unicode edition (default: Unicode)',nl
+          r,←'        32 or 64             32/64 bit-width (default: 64-bit)',nl
+          r,←nl
+          r,←'-preview                 display required changes but do not apply them',nl
+          r,←'-dir={show|hide}         show or hide actions for directories (v18.2 or later only; default: show)',nl
+          r,←'-config={edit|run}       set default action for configuration files (.dcfg; default: edit)',nl
+          r,←'-source={edit|run|load}  set default action for source files (.apl? except .apls; default: edit)',nl
+          r,←'-workspace={run|load}    set default action for workspaces (default: run)',nl
+          r,←'-script={run|edit}       set default action for script files (.apls; default: run)',nl
+          r,←'-dyapp={run|edit}        set default action for (deprecated) .dyapp files (default: run)',nl
+          r,←'-user={current|all}      decide whether to work on HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE (default: current if HKCU has settings, otherwise all) ',nl
+          r,←'-nobackup                skip backup file (see warning below) when making changes',nl
+          r,←'-confirm                 display proposed changes and ask for confirmation before proceeding',nl
+      :EndIf
      
-      r,←⊂''
-      r,←⊂'    ∘  Set Windows "file associations" for Dyalog APL, to add right-click menu items'
-      r,←'       and double-click actions in Windows Explorer.' ''
-      r,←⊂'    ∘  <version> is the version to set associations for.'
-      r,←⊂'    ∘  If no version number or action is specified, a GUI will pop up to offer options.'
-      r,←'' '    ∘  Supported actions:'
-      r,←⊂'         status     Returns a brief overview of current associations.'
-      r,←⊂'         details    Returns a full list of current registry settings.'
-      r,←⊂'         remove     Removes all current settings.'
-      r,←⊂'         backup     Takes a backup of the current registry settings in the form of a registry file.'
-      r,←⊂'                    (all operations which make changes will take a backup unless -nobackup is set)'
      
-      r,←'' '    ∘ Supported switches (first option is the default):' ''
-      r,←⊂'         -preview                   display required changes but do not apply them'
-      r,←⊂'         -dir       =show|hide      show or hide actions for directories (v18.2 or later only)'
-      r,←⊂'         -config    =edit|run       set default action for config files (.dcfg)'
-      r,←⊂'         -source    =edit|run|load  set default action for source files (.apl? except .apls)'
-      r,←⊂'         -workspace =run|load       set default action for workspaces'
-      r,←⊂'         -script    =run|edit       set default action for script files (.apls)'
-      r,←⊂'         -dyapp     =run|edit       set default action for (deprecated) dyappp files'
-      r,←⊂'         -user      =current|all    decide whether to work on HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE'
-      r,←⊂'                                    (defaults to -user=all unless HKCU contains settings for the current user)'
-      r,←⊂'         -nobackup                  do NOT take a backup before performing the operation'
-      r,←⊂'         -confirm                   display changes and ask for confirmation before applying them'
+      h←'WARNING:  Inappropriate associations can lead to unexpected '
+      h,←'and ill-defined behaviour in Microsoft Windows'' handling of Dyalog files. '
+      h,←'By default, this utililty saves the affected registry entries to a time-stamped '
+      h,←'.reg file before making any changes. Double-click this file to restore any associations that were changed after the indicated time.'
+      r,←nl,h
     ∇
 
     ∇ rc←Run(Cmd Args);defaults;t;switches;reg
      
       reg←(1+##.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃'all' 'current' ⍝ -user=current if current settings exist
-
+     
       defaults←reg'show','edit' 'run' 'open'['ero'⍳⊃¨FileTypeOpts]
       switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'
       t←Args.(user dir dcfg dws dyalog dyapp dyalogscript)←defaults{0≡⍵:⍺ ⋄ ⍵}¨⎕C Args⍎⍕switches
@@ -112,32 +154,32 @@
     ∇
 
     ∇ r←GenUCMD Args;args;switches;swd;vals
-      ⍝ Re-create UCMD               
+      ⍝ Re-create UCMD
       args←'_'=⊃¨(swd←Args.SwD)[;1]
-      switches←(~args)∧0≢¨swd[;2]                    
+      switches←(~args)∧0≢¨swd[;2]
       vals←switches/swd[;2]
       vals←((~vals∊1)/¨'=',¨⍕¨vals)
       r←CMD,(¯1↓⍕args/swd[;2]),∊' -'∘,¨(switches/swd[;1]),¨vals
-     ∇
+    ∇
 
     :EndSection UCMD
 
     ∇ rc←Do Args;REG;ivers;vers;ipaths;path;vernum;opts;str;bin;del;msg;old;new;ni;oi;common;keys;t;lastpath;g;lastUpath;sel;validcmd;validvers;file
       ⍝ The main function (note the useful comment!)
-
-  RESTART:     
+     
+     RESTART:
       REG←('all' 'current'⍳⊂Args.user)⊃HKLMSC HKCUSC
      
       :If (Args.user≡'all')∧~IsUserAnAdmin
           t←'Select Yes to launch an additional APL process with administrative rights, and rerun the command.' ''
-          t,←('If you select No but wish to perform the operation for the current user, include "-user=current" on the ',CMD,' command line.') ''
+          t,←('If you select No but wish to perform the operation for the current user, include "-user=current" on the ',CMD,' command line.')''
           :If ~Args.qa_mode
           :AndIf 'Adminstrative privileges required for -user=all'MsgBoxYN t
-               Args.SwD[Args.SwD[;1]⍳⊂'user';2]←⊂'all'
+              Args.SwD[Args.SwD[;1]⍳⊂'user';2]←⊂'all'
               →0⊣rc←LaunchAdminProcess GenUCMD Args
-          :EndIf                      
+          :EndIf
           Args.SwD[Args.SwD[;1]⍳⊂'user';2]←⊂'current'
-          →0⊣rc←↑'Aborted. Try:' '' ('      ]',GenUCMD Args)
+          →0⊣rc←↑'Aborted. Try:' ''('      ]',GenUCMD Args)
       :EndIf
      
       :If Args._1≡'DETAILS'
@@ -148,7 +190,7 @@
       :EndIf
      
       ivers←InstalledVersions        ⍝ A vector of all installed versions of Dyalog APL (handles 11.0 onward)
-      g←⍒vers←VersionIDs ivers       ⍝ nn.n[-Ubb] format
+      g←⍒vers←0 APLversion¨ivers     ⍝ nn.n[-Ubb] format
       (vers ivers)←{⍵[g]}¨vers ivers ⍝ Descending order
      
       ipaths←##.WinReg.GetString¨'HKEY_CURRENT_USER\'∘,¨ivers,¨⊂'\dyalog' ⍝ A vector of the installation directories of installed versions
@@ -160,23 +202,27 @@
       :If 0≡Args._1 ⍝ No arguments
           :If 0=⊃t←SelectGui vers(CurrentAssociations 0)Args
               →0⊣rc←'Operation cancelled'
-          :Else    
+          :Else
               Args←2⊃t
-              ⎕←↑'Processing:' '' ('      ]',GenUCMD Args)  
+              ⎕←↑'Processing:' ''('      ]',GenUCMD Args)
               →RESTART
           :EndIf
       :EndIf
      
-      validcmd←(⊂Args._1)∊'STATUS' 'DETAILS' 'REMOVE' 'BACKUP'
-      validvers←(⊂Args._1)∊vers
+      :If validcmd←(⊂Args._1)∊'STATUS' 'DETAILS' 'REMOVE' 'BACKUP'
+          validvers←0
+      :Else
+          Args._1←1 APLversion Args._1
+          validvers←(⊂Args._1)∊vers
+      :EndIf
      
       :If (Args._1≡'STATUS')∨~validcmd∨validvers
-          rc←(Args._1≢'STATUS')/('*** Invalid version: ',(⍕Args._1),' ***')''
-          rc,←({'Status for ',(1 ⎕C ⍵),' user',((⍵≡'all')/'s'),':'}Args.user) ''
-          rc,←'Installed versions are:' ''(⍕'' '',vers)''
-          rc,←CurrentAssociations 1                  
-          rc,←'' 'To change associations, or repair associations for the current version, enter e.g.' ''
-          rc,←⊂'      ]',CMD,' ',⊃vers
+          rc←(Args._1≢'STATUS')/('*** Invalid instance: ',(⍕⊃Args.Arguments),' ***')''
+          rc,←({'Status for ',(1 ⎕C ⍵),' user',((⍵≡'all')/'s'),':'}Args.user)''
+          rc,←'Installed instances are:' ''('     ',⍕VersionIDs vers)''
+          rc,←CurrentAssociations 1
+          rc,←'' 'Example:  To set associations to the instance you''re using right now, enter:' ''
+          rc,←⊂'      ]',CMD,' ',VersionIDs 1 APLversion⍕# ⎕WG'APLVersion'
           rc←↑rc
      
       :ElseIf Args._1≡'REMOVE'
@@ -187,8 +233,9 @@
           rc←Backup Args
      
       :Else
-          vernum←⊃2⊃⎕VFI{(¯1+⍵⍳'-')↑⍵}Args._1
-          path←(vers⍳⊂Args._1)⊃ipaths,⊂'C:\Program Files\Dyalog\APL v.',Args._1,'\not installed\'
+          ⎕←'Selected instance: ',Args._1
+          vernum←⊃⊃⌽⎕VFI Args._1
+          path←(vers⍳⊂Args._1)⊃ipaths,⊂'C:\Program Files\Dyalog\APL v.',Args._1,'\not installed\' ⍝ // might not need the fallback element
      
           (msg str bin del)←BuildReg path vernum REG Args
           :If 0≠≢msg
@@ -209,9 +256,10 @@
     ∇ rc←LaunchAdminProcess ucmd;cmd;psi;z
       ⎕USING←'System,System.dll'
       cmd←2 ⎕NQ'.' 'GetCommandlineArgs'
-      cmd,←⊂'LX="⎕←↑⍪'''' ''Administrative process started. Now re-run:'' '''' ''      ]',ucmd,'''"'
+      cmd,←⊂'LX=⎕←↑⍪'''' ''Administrative process started. Now re-run:'' '''' ''      ]',ucmd,''''
       psi←⎕NEW Diagnostics.ProcessStartInfo(1↑cmd)
-      psi.Arguments←⍕1↓cmd
+      ⍝ work around [19652] interpreter reports command line arguments without quotes
+      psi.Arguments←⍕'^\w+=".*"$|^-\w+$' '^\w+=.*$'⎕S{⍵.PatternNum:⍵.Match((⍳↑⊣),1 ⎕JSON⍳↓⊣)'=' ⋄ ⍵.Match}1↓cmd
       psi.Verb←'runas' ⍝ Request elevation
       z←Diagnostics.Process.Start psi
       rc←'Administrative process launched.'
@@ -221,7 +269,7 @@
       ⍝ Retrieve the list of installed versions of Dyalog APL
      
       hkcu←'HKEY_CURRENT_USER\'
-      sd←'Software\Dyalog\'     
+      sd←'Software\Dyalog\'
       sk←##.WinReg.GetAllSubKeyNames hkcu,sd
       mask←1∊¨'Dyalog APL/'∘⍷¨sk
       r←(⊂sd),¨mask/sk
@@ -296,7 +344,7 @@
       :Case 1
           r←,⊂'Current assocation: ',⊃r[1;2]
       :Else                    ⍝ list individual associations
-          r←'Current associations:' '',⍕¨↓(⊂'   '),r
+          r←'Current associations:' '',↓⍕(⊂'   '),r
       :EndSelect
     ∇
 
@@ -327,13 +375,13 @@
           EditCmd←'"',path,'dyalogrt.exe" -EDITONLY "%1"'
           (RunCmd LoadCmd)←('LOAD='⎕R'')RunCmd LoadCmd
       :EndIf
-
+     
       :If opts.qa_mode ⍝ When doing QA...
           (pvnum pvpath)←vernum path                     ⍝ Always use the requested version
       :Else
           pvnum←⊃2⊃⎕VFI GetVersion pvpath←opts.lastUpath ⍝ Latest installed Unicode version
-      :EndIf     
-
+      :EndIf
+     
       :If pvnum≥17
           PreviewCmd←'"',pvpath,'dyaedit.exe" -PREVIEW'
       :Else
@@ -396,7 +444,7 @@
               runcmd←RunShCmd
           :ElseIf type≡'dyapp'
               editcmd←EditWithNotepad
-              icons←(~labels∊⊂'Edit')/¨icons    ⍝ No icon for Edit since we use Notepad 
+              icons←(~labels∊⊂'Edit')/¨icons    ⍝ No icon for Edit since we use Notepad
               runcmd←RunDyappCmd
           :ElseIf type≡'dcfg'
               (loadcmd runcmd)←('LOAD='⎕R'CONFIGFILE=')loadcmd runcmd
@@ -489,13 +537,13 @@
     ∇
 
     ∇ file←Backup Args;keys;txt;file;del;hdr;⎕USING
-      
+     
       ⎕USING←'Microsoft.Win32'
       :If 0={6::0 ⋄ ≢,Registry.Users}⍬
           ⎕←'Unable to take a backup: The available version of .NET does not provide a Registry class.'
-          →0 ⊣ file←''
+          →0⊣file←''
       :EndIf
-
+     
       txt←'; First clear out all Dyalog file association registry keys',CR,CR
       txt←,∊'[-'∘,¨(2 ReadReg REG),¨⊂']',CR
       keys←2 ReadReg REG
@@ -592,57 +640,54 @@
                   t←##.WinReg.PutBinary set[i;]
               :EndIf
           :Else
-              ⎕←⎕DM
-              ⎕←'Failed to set: ',key,' rc=',⍕t
-              ∘∘∘
+              ⎕SIGNAL⊂('EN' 11)('Message'(⎕DMX.Message,1⌽')(Failed to set: ',key,' rc=',⍕t))
           :EndTrap
       :EndFor
     ∇
 
     :Section GUI
 
-    ∇ (ok Args)←SelectGui(vers curr Args);Text;Y;X;vers;size;listx;neither;line1;i;type;dws;dyapp;dyalog;Applications;f;z;list;ok;users;selected;done;cap
+    ∇ (ok Args)←SelectGui(vers curr Args);Text;Y;X;vers;size;listx;neither;line1;i;type;dws;dyapp;dyalog;Applications;f;z;ok;users;selected;done;cap
     ⍝ Creates GUI
-      
-      Text←('Current associations for ',(1 ⎕C Args.user),(' user',(Args.user≡'all')/'s'),':') ''
+     
+      Text←('Current associations for ',(1 ⎕C Args.user),(' user',(Args.user≡'all')/'s'),':')''
       Text,←FmtCurrent curr
-      Text,←'' 'Select version to associate:'
+      Text,←'' 'Select instance to associate:'
       cap←'Edit File Associations'
-      list←FmtVersions vers       
-      (vers list)←(⊂⍒list)∘⌷¨vers list
+      vers←(⊂⍒vers)⌷vers
       listx←300⌊19×⍴vers
       size←(308+listx),365
      
-      'f'⎕WC'Form' cap('Size'size)('Coord' 'Pixel')('Sizeable' 0)('MaxButton' 0)('MinButton' 0)
+      'f'⎕WC'Form'cap('Size'size)('Coord' 'Pixel')('Sizeable' 0)('MaxButton' 0)('MinButton' 0)
       'f.fnt'⎕WC ⎕SE.SALTUtils.Fonts.Message
       'f.fnt'⎕WS'Size' 16
       'f'⎕WS'Event'('Close' 1)
       'f'⎕WS'FontObj' 'f.fnt'
       'f.msg'⎕WC'Text'(↑Text)(10 15)
-      'f.list'⎕WC'List'('Items'list)('Posn'(165 30))('Size'(listx,300))('Selitems'(vers∊2↓curr[;2]))('Event' 'MouseDblClick' 1)
+      'f.list'⎕WC'List'('Items'vers)('Posn'(165 30))('Size'(listx,300))('Selitems'(vers∊2↓curr[;2]))('Event' 'MouseDblClick' 1)
      
-      'f.dir'⎕WC'Button' '&Show Windows Explorer context menu items for directories'((180+listx),15)('Style' 'Check')('State' (Args.dir≡'show'))    
-      'f.backup'⎕WC'Button' '&Create a backup of the relevant registry settings'((205+listx),15)('Style' 'Check')('State' (~Args.nobackup))
-      users←'Current User' ('All users ',(~IsUserAnAdmin)/' (requires admin rights)')
-      
-      'f.userlabel' ⎕WC 'Text' 'Set associations for:' ((232+listx),15)
-      'f.user'⎕WC'Combo'('Items' users)('SelItems'((Args.user≡'all')⌽1 0))('Posn' ((230+listx),125))('Size' 30 200)
+      'f.dir'⎕WC'Button' '&Show Windows Explorer context menu items for directories'((180+listx),15)('Style' 'Check')('State'(Args.dir≡'show'))
+      'f.backup'⎕WC'Button' '&Create a backup of the relevant registry settings'((205+listx),15)('Style' 'Check')('State'(~Args.nobackup))
+      users←'Current User'('All users ',(~IsUserAnAdmin)/' (requires admin rights)')
+     
+      'f.userlabel'⎕WC'Text' 'Set associations for:'((232+listx),15)
+      'f.user'⎕WC'Combo'('Items'users)('SelItems'((Args.user≡'all')⌽1 0))('Posn'((230+listx),125))('Size' 30 200)
      
       'f.bapply'⎕WC'Button'('Caption' '&Apply')('Posn'((1⊃size)-40)100)('Size' 30 70)('Event' 'Select' 1)
       'f.bcancel'⎕WC'Button'('Caption' '&Cancel')('Posn'((1⊃size)-40)200)('Size' 30 70)('Event' 'Select' 1)
      
       ⎕NQ'f.bcancel' 'Gotfocus'
       :Repeat
-        z←⎕DQ'f'
-        ok←(⊂2↑z)∊('f.bapply' 'Select')('f.list' 'MouseDblClick')
-        ok←ok∧1=+/f.list.SelItems  
-        :If ~done←ok∨(⊂z)∊('f.bcancel' 'Select')((,'f') 'Close')
-            cap MsgBoxAlert 'Please select a version.'
-        :EndIf
-      :Until done                  
-      
+          z←⎕DQ'f'
+          ok←(⊂2↑z)∊('f.bapply' 'Select')('f.list' 'MouseDblClick')
+          ok←ok∧1=+/f.list.SelItems
+          :If ~done←ok∨(⊂z)∊('f.bcancel' 'Select')((,'f')'Close')
+              cap MsgBoxAlert'Please select an instance.'
+          :EndIf
+      :Until done
+     
       Args._1←⊃f.list.SelItems/vers
-      Args.nobackup←~f.backup.State                        
+      Args.nobackup←~f.backup.State
       Args.dir←(1+f.dir.State)⊃'hide' 'show'
       Args.user←(f.user.SelItems⍳1)⊃'current' 'all' 'all'
       Args.SwD[Args.SwD[;1]⍳'_1' 'nobackup' 'user' 'dir';2]←Args.(_1 nobackup user dir)
@@ -765,10 +810,10 @@
 
     ∇ r←RunTests;ver;z;ivers;REG;assoc;pv;backup;i;switches
      
-      REG←(i←1+#.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃HKLMSC HKCUSC 
+      REG←(i←1+#.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃HKLMSC HKCUSC
       switches←' -user=',i⊃'all' 'current'
       switches,←' -qa_mode' ⍝ Required to block certain behaviours during testing
-
+     
       ⎕←'Running tests with',switches
      
       ver←GetVersion 2 ⎕NQ'.' 'GetEnvironment' 'Dyalog'
@@ -825,4 +870,4 @@
 
     :EndSection
 
-:EndNamespace ⍝ EditFileAssociations  $Revision: 1746 $
+:EndNamespace ⍝ EditFileAssociations  $Revision: 1758 $
