@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.05
+﻿:Namespace efa ⍝ V3.06
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
@@ -8,6 +8,7 @@
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
 ⍝ 2022 01 28 Adam:  Report selected version, show correct current version, text and help, work around [19652]
+⍝ 2022 01 31 Adam:  Include missing flags in syntax spec
 
 ⍝∇:require =\WinReg.dyalog
 
@@ -98,7 +99,7 @@
     ∇ r←level Help Cmd;nl;h
       h←'    ]',Cmd,' [<instance>|status|details|remove|backup] '
       h,←'[-preview] [-dir={show|hide}] [-workspace={run|load} [-script={run|edit}] [-dyapp={run|edit}] '
-      h,←'[-source={edit|run|load}] [-config={edit|run}] [-user={current|all}]'
+      h,←'[-source={edit|run|load}] [-config={edit|run}] [-user={current|all}] [-nobackup] [-confirm]'
       r←DESC,nl,h,nl←⎕UCS 13
       :If level=0
           r,←nl
