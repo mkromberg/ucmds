@@ -525,9 +525,9 @@
       m←new[ni←newkeys⍳common;2]≢¨old[oi←old[;1]⍳common;2]
       update←new[m/ni;1],old[m/oi;2],new[m/ni;,2]          ⍝ common keys, old and new values
      
-      ⍝ Logic to avoid downgrading the previewer
+      ⍝ Logic to avoid downgrading the previewer 
       :If ∨/m←(¯15↑¨update[;1])∊⊂'\LocalServer32\'
-          v←GetVersion¨0 1↓m⌿update
+          v←1 APLversion¨GetVersion¨0 1↓m⌿update
           (m/m)←(v[;1]∊Args.vers)∧>/⍋⍤1⊢v ⍝ Entries which would "downgrade" the previewer
           update←(~m)⌿update
       :EndIf
@@ -831,7 +831,7 @@
       assoc←CurrentAssociations 0
       assert 8=≢assoc
       pv←(assoc[;1]⍳⊂'Workspace Preview')⊃assoc[;2]
-      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp' 'dyalogscript' 'Directories')/assoc[;2])∊⊂'18.2' ⍝ Most associations gone
+      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp' 'dyalogscript' 'Directories')/assoc[;2])∊⊂'18.2U64' ⍝ Most associations gone
      
       ⍝ --- Take a backup, switch to and verify 18.0, and finally restore to 18.2 using the backup
      
@@ -841,7 +841,7 @@
      
       assoc←CurrentAssociations 0
       assert 6=≢assoc
-      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0'        ⍝ Core associations switched
+      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'        ⍝ Core associations switched
       assert∧/((assoc[;1]∊'Workspace Preview' 'Source Preview')/assoc[;2])∊⊂pv     ⍝ Preview should still use latest
       assert~∨/('dyalogscript' 'Directories')∊assoc[;1]                            ⍝ 18.0 has no script support
      
