@@ -1,6 +1,7 @@
-﻿:Namespace efa ⍝ V3.04
+﻿:Namespace efa ⍝ V3.05
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
+⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
 ⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
 ⍝ 2022 01 22 MKrom: Fix #10 Unable to close the form
 ⍝ 2022 01 22 MKrom: Fix #9 Caption too long
@@ -311,7 +312,7 @@
      
       RunCmd←'"',path,'dyalog.exe" LOAD="%1"'
       RunDyappCmd←'"',path,'dyalog.exe" DYAPP="%1"'
-      RunShCmd←'powershell -File "',path,'Samples\scripts\bin\dyalogscript.ps1" "%1" %*'
+      RunShCmd←'powershell -File "',path,'scriptbin\dyalogscript.ps1" "%1" %*'
       LoadCmd←'"',path,'dyalog.exe" -x LOAD="%1"'
      
       DyalogIcon←'"',path,'dyalog.exe",0'
