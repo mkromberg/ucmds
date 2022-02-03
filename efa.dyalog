@@ -1,4 +1,4 @@
-﻿﻿:Namespace efa ⍝ V3.06
+﻿:Namespace efa ⍝ V3.06
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
