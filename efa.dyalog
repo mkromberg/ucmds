@@ -1,21 +1,22 @@
-﻿:Namespace efa ⍝ V3.06
+﻿:Namespace efa ⍝ V3.08  
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
-⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
-⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
-⍝ 2022 01 22 MKrom: Fix #10 Unable to close the form
-⍝ 2022 01 22 MKrom: Fix #9 Caption too long
 ⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
+⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
+⍝ 2022 01 22 MKrom: Fix #10 Unable to close the form
+⍝ 2022 01 22 MKrom: Fix #9 Caption too long
 ⍝ 2022 01 28 Adam:  Report selected version, show correct current version, text and help, work around [19652]
 ⍝ 2022 01 31 Adam:  Include missing flags in syntax spec
+⍝ 2022 02 01 Adam:  allow -source=load, textual changes
+⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
 
 ⍝∇:require =\WinReg.dyalog
 
 
     ⎕ml←⎕io←1
-    DESC←'Associate directories and files with a specific Dyalog instance (optionally through a GUI)'
+    DESC←'Configure Microsoft Windows to associate directories and files with a specific Dyalog instance (optionally through a GUI)'
 
     CMD←' '~⍨NAME←'FileAssociations'
     CR LF←⎕UCS 13 10
@@ -90,7 +91,7 @@
       r←⎕NS''
       parse←'1SL -preview -user=current all -dir=show hide'
       parse,←'-workspace=run load -dyapp=run edit -script=run edit'
-      parse,←'-config=edit run -source=edit run '
+      parse,←'-config=edit run -source=edit run load '
       parse,←'-confirm -nobackup -qa_mode'
      
       r.(Name Desc Group Parse)←CMD DESC'MSWIN'parse
@@ -112,7 +113,7 @@
           r,←'    "status"    brief report of current associations',nl
           r,←'    "details"   full report of current associations',nl
           r,←'    "remove"    remove all current associations',nl
-          r,←'    "backup"    only export current associations to .reg file',nl
+          r,←'    "backup"    export current associations to .reg file',nl
           r,←nl
           r,←'    <instance> must be one of:',nl
           r,←'       ',nl,⍨⍕VersionIDs InstalledVersions
@@ -344,7 +345,7 @@
       :Case 0
           r←,⊂'No current associations defined.'
       :Case 1
-          r←,⊂'Current assocation: ',⊃r[1;2]
+          r←,⊂'Current association: ',⊃r[1;2]
       :Else                    ⍝ list individual associations
           r←'Current associations:' '',↓⍕(⊂'   '),r
       :EndSelect
@@ -525,7 +526,7 @@
       m←new[ni←newkeys⍳common;2]≢¨old[oi←old[;1]⍳common;2]
       update←new[m/ni;1],old[m/oi;2],new[m/ni;,2]          ⍝ common keys, old and new values
      
-      ⍝ Logic to avoid downgrading the previewer 
+      ⍝ Logic to avoid downgrading the previewer
       :If ∨/m←(¯15↑¨update[;1])∊⊂'\LocalServer32\'
           v←1 APLversion¨GetVersion¨0 1↓m⌿update
           (m/m)←(v[;1]∊Args.vers)∧>/⍋⍤1⊢v ⍝ Entries which would "downgrade" the previewer
@@ -841,7 +842,7 @@
      
       assoc←CurrentAssociations 0
       assert 6=≢assoc
-      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'        ⍝ Core associations switched
+      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'     ⍝ Core associations switched
       assert∧/((assoc[;1]∊'Workspace Preview' 'Source Preview')/assoc[;2])∊⊂pv     ⍝ Preview should still use latest
       assert~∨/('dyalogscript' 'Directories')∊assoc[;1]                            ⍝ 18.0 has no script support
      
@@ -872,4 +873,4 @@
 
     :EndSection
 
-:EndNamespace ⍝ EditFileAssociations  $Revision: 1758 $
+:EndNamespace ⍝ EditFileAssociations  $Revision: 1759 $
