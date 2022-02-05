@@ -1,9 +1,9 @@
-:Namespace efa ⍝ V3.08  
+﻿:Namespace efa ⍝ V3.09  
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
+⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
 ⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
 ⍝ 2022 01 21 MKrom: Fix #7 Classic 32 displays as Unicode 32 in GUI
-⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
 ⍝ 2022 01 22 MKrom: Fix #11 VALUE ERROR with .NET Core
 ⍝ 2022 01 22 MKrom: Fix #10 Unable to close the form
 ⍝ 2022 01 22 MKrom: Fix #9 Caption too long
@@ -11,6 +11,7 @@
 ⍝ 2022 01 31 Adam:  Include missing flags in syntax spec
 ⍝ 2022 02 01 Adam:  allow -source=load, textual changes
 ⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
+⍝ 2022 02 05 MKrom: v3.09 Fix #19 #20 #21: allow "current" and improve "status" output
 
 ⍝∇:require =\WinReg.dyalog
 
@@ -147,7 +148,7 @@
       reg←(1+##.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃'all' 'current' ⍝ -user=current if current settings exist
      
       defaults←reg'show','edit' 'run' 'open'['ero'⍳⊃¨FileTypeOpts]
-      switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'
+      switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'        
       t←Args.(user dir dcfg dws dyalog dyapp dyalogscript)←defaults{0≡⍵:⍺ ⋄ ⍵}¨⎕C Args⍎⍕switches
       ⍝ ↑↑↑ change human-friendly switch names to file type names used in registry to simpify the rest of the code
       Args.nondefault←(defaults≢¨t)/switches ⍝ record names of switches with non-default values
@@ -241,9 +242,9 @@
       :ElseIf Args._1≡'BACKUP'
           rc←Backup Args
      
-      :Else
+      :Else  
           :If ~(⊂'RunTests')∊⎕SI
-          ⎕←'Selected instance: ',Args._1
+              ⎕←'Selected instance: ',Args._1
           :EndIf
           vernum←⊃⊃⌽⎕VFI Args._1
           path←(vers⍳⊂Args._1)⊃ipaths,⊂'C:\Program Files\Dyalog\APL v.',Args._1,'\not installed\' ⍝ // might not need the fallback element
@@ -339,7 +340,7 @@
       keys,←⊂(⊃DirKeys),'\shell\DyalogLoad\command'
       labels,←⊂'Directories'
      
-      r←Show 0                 ⍝ read all the keys
+      r←Show 0                 ⍝ read all the keys  
       i←(1∊¨keys∘.⍷r[;1])⍳⍤1⊢1 ⍝ search for "our" keys
       m←i≤≢r
       r←(m/labels),r[m/i;,2]   ⍝ keys and values of interest
@@ -350,7 +351,7 @@
       r[r[;1]⍳defaults[;1];3]←('default action is '∘,¨defaults[;2])
       t←{(~⍵∊r[;1])/⍵}FileTypes,⊂'Directories'
       r←r⍪(⍪t),⍤1⊢'none' ''
-     
+
       r[⍸r[;1]∊⊂'dyalog';1]←⊂'source'
       r←r[⍋r;]
       →fmt↓0
@@ -860,7 +861,7 @@
      
       ⎕CMD'reg import "',backup,'"'                                                ⍝ Restore the backup
       z←⎕SE.UCMD CMD,' ',ver,' -preview',switches ⍝ Ask what is now
-      assert'No changes required'≡19↑z                                             ⍝ We should be back to 18.2
+      assert'No changes required'≡19↑z                                             ⍝ We should be back to 18.2  
       
       z←⎕SE.UCMD CMD,' current -preview',switches ⍝ Ask what is now                ⍝ Check that "current" keyword works
       assert'No changes required'≡19↑z                                  
@@ -875,7 +876,7 @@
      ⍝     --- And change the default for source files to "Run" rather than "Edit"
       z←⎕SE.UCMD CMD,' 18.2 -dir=hide -source=run -nobackup',switches
      
-      z←⎕SE.UCMD CMD,' details',switches
+      z←⎕SE.UCMD CMD,' details',switches                 
       assert~∨/1∊¨'Directory'∘⍷¨z[;1]  ⍝ No Directory entries
       assert'Run'≡⊃z[1⍳⍨1∊¨'dyalogfile\shell'∘⍷¨z[;1];2]                    ⍝ Default action is Run
       assert 1∊'dyalog.exe",0'⍷⊃z[1⍳⍨1∊¨'dyalogfile\DefaultIcon'∘⍷¨z[;1];2] ⍝ With suitable Icon
