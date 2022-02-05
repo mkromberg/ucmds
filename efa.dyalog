@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.08  
+:Namespace efa ⍝ V3.08  
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 21 MKrom: Fix #8 Tweak display in GUI
@@ -212,6 +212,12 @@
           :EndIf
       :EndIf
      
+      :If Args._1≡'CURRENT' ⍝ Replace current by the current version ID  
+          t←'#' ⎕WG 'APLVersion'
+          t←({(¯1+2⊃⍸⍵='.')↑⍵}2⊃t),' ',('64'∩1⊃t),(82=⎕DR ' ')/' Classic'
+          Args._1←1 APLversion t
+      :EndIf
+
       :If validcmd←(⊂Args._1)∊'STATUS' 'DETAILS' 'REMOVE' 'BACKUP'
           validvers←0
       :Else
