@@ -89,7 +89,7 @@
 
     ∇ r←List;parse
       r←⎕NS''
-      parse←'1SL -preview -user=current all -dir=show hide'
+      parse←'1SL -preview -user=current all -dir=show hide '
       parse,←'-workspace=run load -dyapp=run edit -script=run edit'
       parse,←'-config=edit run -source=edit run load '
       parse,←'-confirm -nobackup -qa_mode'
@@ -242,7 +242,9 @@
           rc←Backup Args
      
       :Else
+          :If ~(⊂'RunTests')∊⎕SI
           ⎕←'Selected instance: ',Args._1
+          :EndIf
           vernum←⊃⊃⌽⎕VFI Args._1
           path←(vers⍳⊂Args._1)⊃ipaths,⊂'C:\Program Files\Dyalog\APL v.',Args._1,'\not installed\' ⍝ // might not need the fallback element
      
@@ -325,15 +327,15 @@
       :EndFor
     ∇
 
-    ∇ r←CurrentAssociations fmt;keys;labels;i;m;n
+    ∇ r←CurrentAssociations fmt;keys;labels;i;m;n;defaults;t
       ⍝ Report on existing associations found in the registry
      
       ⍝ Set up a list of keys representing different kinds of association
      
       keys←PreviewSource PreviewWS,¨⊂'\LocalServer32'
       labels←'Workspace Preview' 'Source Preview'
-      keys,←,FileTypes∘.,'file\shell\Run\command' 'file\shell\Edit\command'
-      labels,←2/FileTypes
+      keys,←,FileTypes∘.,'file\shell\Run\command' 'file\shell\Edit\command' 'file\shell'
+      labels,←3/FileTypes
       keys,←⊂(⊃DirKeys),'\shell\DyalogLoad\command'
       labels,←⊂'Directories'
      
@@ -341,18 +343,22 @@
       i←(1∊¨keys∘.⍷r[;1])⍳⍤1⊢1 ⍝ search for "our" keys
       m←i≤≢r
       r←(m/labels),r[m/i;,2]   ⍝ keys and values of interest
+      defaults←(r[;2]∊'Edit' 'Run' 'Load')⌿r
       r←(1∊¨'Dyalog APL'∘⍷¨r[;2])⌿r
       r[;2]←VersionIDs r[;2]   ⍝ convert folder names to nn.n[-Ubb] format
-      r←r[r[;1]⍳∪r[;1];]       ⍝ remove duplicates
+      r←r[r[;1]⍳∪r[;1];],⊂''   ⍝ remove duplicates, add default column      
+      r[r[;1]⍳defaults[;1];3]←('default action is '∘,¨defaults[;2])
+      t←{(~⍵∊r[;1])/⍵}FileTypes,⊂'Directories'
+      r←r⍪(⍪t),⍤1⊢'none' ''
      
+      r[⍸r[;1]∊⊂'dyalog';1]←⊂'source'
+      r←r[⍋r;]
       →fmt↓0
      
-      :Select ≢∪r[;2]            ⍝ all associated with same version (normal)
+      :Select ≢∪r[;2]          ⍝ all associated with same version (normal)
       :Case 0
           r←,⊂'No current associations defined.'
-      :Case 1
-          r←,⊂'Current association: ',⊃r[1;2]
-      :Else                    ⍝ list individual associations
+      :Else   
           r←'Current associations:' '',↓⍕(⊂'   '),r
       :EndSelect
     ∇
@@ -829,7 +835,7 @@
       'Tests require version 18.2 64 Unicode'⎕SIGNAL('18.2'≢ver)/11
      
       z←⎕SE.UCMD CMD,' ',ver,' -preview',switches
-      'Tests require a fresh installation'⎕SIGNAL('No changes required'≢19↑z)/11
+      'Please set ]fileassociations current -qa_mode first'⎕SIGNAL('No changes required'≢19↑z)/11
      
       ivers←InstalledVersions
       'Version 18.0 needs to be installed'⎕SIGNAL((⊂'18.0')∊ivers)/11
@@ -847,14 +853,17 @@
       z←⎕SE.UCMD CMD,' 18.0 -nobackup',switches ⍝ Switch to v18.0 and validate the resulting associations
      
       assoc←CurrentAssociations 0
-      assert 6=≢assoc
-      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'     ⍝ Core associations switched
-      assert∧/((assoc[;1]∊'Workspace Preview' 'Source Preview')/assoc[;2])∊⊂pv     ⍝ Preview should still use latest
-      assert~∨/('dyalogscript' 'Directories')∊assoc[;1]                            ⍝ 18.0 has no script support
+      assert 8=≢assoc
+      assert ∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'    ⍝ Core associations switched
+      assert ∧/((assoc[;1]∊'Workspace Preview' 'Source Preview')/assoc[;2])∊⊂pv    ⍝ Preview should still use latest
+      assert ∧/((assoc[;1]∊'Directories' 'dyalogscript')/assoc[;2])∊⊂'none'        ⍝ Not supported by 18.0
      
       ⎕CMD'reg import "',backup,'"'                                                ⍝ Restore the backup
       z←⎕SE.UCMD CMD,' ',ver,' -preview',switches ⍝ Ask what is now
       assert'No changes required'≡19↑z                                             ⍝ We should be back to 18.2
+      
+      z←⎕SE.UCMD CMD,' current -preview',switches ⍝ Ask what is now                ⍝ Check that "current" keyword works
+      assert'No changes required'≡19↑z                                  
      
       ⍝ --- Validate error message when trying to do -user=all and not an Admin
       :If ~IsUserAnAdmin
