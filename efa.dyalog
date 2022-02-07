@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.09  
+﻿:Namespace efa ⍝ V3.10
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
@@ -12,6 +12,7 @@
 ⍝ 2022 02 01 Adam:  allow -source=load, textual changes
 ⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
 ⍝ 2022 02 05 MKrom: v3.09 Fix #19 #20 #21: allow "current" and improve "status" output
+⍝ 2022 02 07 Adam:  Update documentation accordingly, and show more status
 
 ⍝∇:require =\WinReg.dyalog
 
@@ -106,13 +107,14 @@
       r←DESC,nl,h,nl←⎕UCS 13
       :If level=0
           r,←nl
-          r,←']',Cmd,' -?? ⍝ for details',nl
+          r,←']',Cmd,' -?? ⍝ for details and examples',nl
       :Else
           r,←nl,'Argument is one of:',nl
           r,←'    ""          use a GUI to select settings (limited functionality)',nl
-          r,←'    <instance>  associate with <instance> (version, edition, bit-width; default edition and bit-width: Unicode and 64)',nl
-          r,←'    "status"    brief report of current associations',nl
-          r,←'    "details"   full report of current associations',nl
+          r,←'    <instance>  associate with <instance> ("current" OR version, edition, bit-width; default edition and bit-width: Unicode and 64) '
+          r,←'and reset all actions to their default values',nl
+          r,←'    "status"    brief report of current associations and default actions',nl
+          r,←'    "details"   full report of current associations and default actions',nl
           r,←'    "remove"    remove all current associations',nl
           r,←'    "backup"    export current associations to .reg file',nl
           r,←nl
@@ -133,6 +135,15 @@
           r,←'-user={current|all}      decide whether to work on HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE (default: current if HKCU has settings, otherwise all) ',nl
           r,←'-nobackup                skip backup file (see warning below) when making changes',nl
           r,←'-confirm                 display proposed changes and ask for confirmation before proceeding',nl
+          r,←nl
+          r,←'Example:',nl
+          r,←'    To see the current associations and default actions:',nl
+          r,←'        ]',CMD,' status',nl
+          r,←'    To set associations to the current instance:',nl
+          r,←'        ]',CMD,' current',nl
+          r,←'    To set associations to Dyalog version 17.1, 32-bit, Classic edition, while making APL functions run when double-clicked, for all users:',nl
+          r,←'        ]',CMD,' 17.1C32 -source=run -user=all',nl
+     
       :EndIf
      
      
@@ -148,7 +159,7 @@
       reg←(1+##.WinReg.DoesKeyExist HKCUSC,'dwsfile')⊃'all' 'current' ⍝ -user=current if current settings exist
      
       defaults←reg'show','edit' 'run' 'open'['ero'⍳⊃¨FileTypeOpts]
-      switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'        
+      switches←'user' 'dir' 'config' 'workspace' 'source' 'dyapp' 'script'
       t←Args.(user dir dcfg dws dyalog dyapp dyalogscript)←defaults{0≡⍵:⍺ ⋄ ⍵}¨⎕C Args⍎⍕switches
       ⍝ ↑↑↑ change human-friendly switch names to file type names used in registry to simpify the rest of the code
       Args.nondefault←(defaults≢¨t)/switches ⍝ record names of switches with non-default values
@@ -213,12 +224,12 @@
           :EndIf
       :EndIf
      
-      :If Args._1≡'CURRENT' ⍝ Replace current by the current version ID  
-          t←'#' ⎕WG 'APLVersion'
-          t←({(¯1+2⊃⍸⍵='.')↑⍵}2⊃t),' ',('64'∩1⊃t),(82=⎕DR ' ')/' Classic'
+      :If Args._1≡'CURRENT' ⍝ Replace current by the current version ID
+          t←'#'⎕WG'APLVersion'
+          t←({(¯1+2⊃⍸⍵='.')↑⍵}2⊃t),' ',('64'∩1⊃t),(82=⎕DR' ')/' Classic'
           Args._1←1 APLversion t
       :EndIf
-
+     
       :If validcmd←(⊂Args._1)∊'STATUS' 'DETAILS' 'REMOVE' 'BACKUP'
           validvers←0
       :Else
@@ -228,11 +239,11 @@
      
       :If (Args._1≡'STATUS')∨~validcmd∨validvers
           rc←(Args._1≢'STATUS')/('*** Invalid instance: ',(⍕⊃Args.Arguments),' ***')''
-          rc,←({'Status for ',(1 ⎕C ⍵),' user',((⍵≡'all')/'s'),':'}Args.user)''
+          rc,←⊂''
+          rc,←⊂4⌽' ────── ',{'Status for ',(1 ⎕C ⍵),' user',(⍵≡'all')/'s'}Args.user
+          rc,←⊂''
           rc,←'Installed instances are:' ''('     ',⍕VersionIDs vers)''
           rc,←CurrentAssociations 1
-          rc,←'' 'Example:  To set associations to the instance you''re using right now, enter:' ''
-          rc,←⊂'      ]',CMD,' ',VersionIDs 1 APLversion⍕# ⎕WG'APLVersion'
           rc←↑rc
      
       :ElseIf Args._1≡'REMOVE'
@@ -242,7 +253,7 @@
       :ElseIf Args._1≡'BACKUP'
           rc←Backup Args
      
-      :Else  
+      :Else
           :If ~(⊂'RunTests')∊⎕SI
               ⎕←'Selected instance: ',Args._1
           :EndIf
@@ -328,7 +339,7 @@
       :EndFor
     ∇
 
-    ∇ r←CurrentAssociations fmt;keys;labels;i;m;n;defaults;t
+    ∇ r←CurrentAssociations fmt;keys;labels;i;m;n;defaults;t;dir
       ⍝ Report on existing associations found in the registry
      
       ⍝ Set up a list of keys representing different kinds of association
@@ -340,28 +351,38 @@
       keys,←⊂(⊃DirKeys),'\shell\DyalogLoad\command'
       labels,←⊂'Directories'
      
-      r←Show 0                 ⍝ read all the keys  
+      r←Show 0                 ⍝ read all the keys
       i←(1∊¨keys∘.⍷r[;1])⍳⍤1⊢1 ⍝ search for "our" keys
       m←i≤≢r
       r←(m/labels),r[m/i;,2]   ⍝ keys and values of interest
       defaults←(r[;2]∊'Edit' 'Run' 'Load')⌿r
       r←(1∊¨'Dyalog APL'∘⍷¨r[;2])⌿r
       r[;2]←VersionIDs r[;2]   ⍝ convert folder names to nn.n[-Ubb] format
-      r←r[r[;1]⍳∪r[;1];],⊂''   ⍝ remove duplicates, add default column      
+      r←r[r[;1]⍳∪r[;1];],⊂''   ⍝ remove duplicates, add default column
       r[r[;1]⍳defaults[;1];3]←('default action is '∘,¨defaults[;2])
       t←{(~⍵∊r[;1])/⍵}FileTypes,⊂'Directories'
       r←r⍪(⍪t),⍤1⊢'none' ''
-
+     
+      dir←r[;1]⍳⊂'Directories'
+      :If r[dir;2]≡⊂'none'
+          r[dir;3]←⊂'(menu items hidden)'
+      :Else
+          r[dir;3]←⊂'(menu items shown)'
+      :EndIf
+     
+      :If ~∧/'Source Preview' 'Workspace Preview'∊r[;1]
+          r⍪←'Source Preview' 'none' '(disabled)'
+          r⍪←'Workspace Preview' 'none' '(disabled)'
+          r⌿⍨←≠⊣/r
+      :Else
+          r[r[;1]⍳'Source Preview' 'Workspace Preview';3]←⊂'(enabled)'
+      :EndIf
+     
       r[⍸r[;1]∊⊂'dyalog';1]←⊂'source'
       r←r[⍋r;]
       →fmt↓0
      
-      :Select ≢∪r[;2]          ⍝ all associated with same version (normal)
-      :Case 0
-          r←,⊂'No current associations defined.'
-      :Else   
-          r←'Current associations:' '',↓⍕(⊂'   '),r
-      :EndSelect
+      r←'Current associations:' '',↓⍕(⊂'   '),r
     ∇
 
     ∇ (msg str bin del)←BuildReg(path vernum REG opts);types;str;bin;mask;Text;dws;dyapp;dyalog;Icon1;script;pv;clsid;dn;type;extns;name;key;icons;values;default;subkeys;delete;todelete;i;labels;dir;EditCmd;PreviewCmd;RunCmd;RunShCmd;LoadCmd;DyalogIcon;EditorIcon;actionicons;subs;cmds;editcmd;loadcmd;runcmdEditWithNotepad;ft;pvnum;pvpath;versions;Version;ver;shell;RunDyappCmd
@@ -855,16 +876,16 @@
      
       assoc←CurrentAssociations 0
       assert 8=≢assoc
-      assert ∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'    ⍝ Core associations switched
-      assert ∧/((assoc[;1]∊'Workspace Preview' 'Source Preview')/assoc[;2])∊⊂pv    ⍝ Preview should still use latest
-      assert ∧/((assoc[;1]∊'Directories' 'dyalogscript')/assoc[;2])∊⊂'none'        ⍝ Not supported by 18.0
+      assert∧/((assoc[;1]∊'dcfg' 'dws' 'dyalog' 'dyapp')/assoc[;2])∊⊂'18.0U64'    ⍝ Core associations switched
+      assert∧/((assoc[;1]∊'Workspace Preview' 'Source Preview')/assoc[;2])∊⊂pv    ⍝ Preview should still use latest
+      assert∧/((assoc[;1]∊'Directories' 'dyalogscript')/assoc[;2])∊⊂'none'        ⍝ Not supported by 18.0
      
       ⎕CMD'reg import "',backup,'"'                                                ⍝ Restore the backup
       z←⎕SE.UCMD CMD,' ',ver,' -preview',switches ⍝ Ask what is now
-      assert'No changes required'≡19↑z                                             ⍝ We should be back to 18.2  
-      
+      assert'No changes required'≡19↑z                                             ⍝ We should be back to 18.2
+     
       z←⎕SE.UCMD CMD,' current -preview',switches ⍝ Ask what is now                ⍝ Check that "current" keyword works
-      assert'No changes required'≡19↑z                                  
+      assert'No changes required'≡19↑z
      
       ⍝ --- Validate error message when trying to do -user=all and not an Admin
       :If ~IsUserAnAdmin
@@ -876,7 +897,7 @@
      ⍝     --- And change the default for source files to "Run" rather than "Edit"
       z←⎕SE.UCMD CMD,' 18.2 -dir=hide -source=run -nobackup',switches
      
-      z←⎕SE.UCMD CMD,' details',switches                 
+      z←⎕SE.UCMD CMD,' details',switches
       assert~∨/1∊¨'Directory'∘⍷¨z[;1]  ⍝ No Directory entries
       assert'Run'≡⊃z[1⍳⍨1∊¨'dyalogfile\shell'∘⍷¨z[;1];2]                    ⍝ Default action is Run
       assert 1∊'dyalog.exe",0'⍷⊃z[1⍳⍨1∊¨'dyalogfile\DefaultIcon'∘⍷¨z[;1];2] ⍝ With suitable Icon
@@ -889,4 +910,4 @@
 
     :EndSection
 
-:EndNamespace ⍝ EditFileAssociations  $Revision: 1759 $
+:EndNamespace ⍝ EditFileAssociations  $Revision: 1763 $
