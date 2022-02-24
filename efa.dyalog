@@ -133,6 +133,7 @@
           r,←'-script={run|edit}       set default action for script files (.apls; default: run)',nl
           r,←'-dyapp={run|edit}        set default action for (deprecated) .dyapp files (default: run)',nl
           r,←'-user={current|all}      decide whether to work on HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE (default: current if HKCU has settings, otherwise all) ',nl
+          r,←'                           NOTE:  "all" needs administrative privileges; if necessary, ]',Cmd,' will ask to launch an elevated session',nl
           r,←'-nobackup                skip backup file (see warning below) when making changes',nl
           r,←'-confirm                 display proposed changes and ask for confirmation before proceeding',nl
           r,←nl
