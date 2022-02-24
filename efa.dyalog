@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.10
+﻿:Namespace efa ⍝ V3.11
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
@@ -13,6 +13,7 @@
 ⍝ 2022 02 03 MKrom: Fix #22 dyalogscript.ps1 moved in 18.2
 ⍝ 2022 02 05 MKrom: v3.09 Fix #19 #20 #21: allow "current" and improve "status" output
 ⍝ 2022 02 07 Adam:  Update documentation accordingly, and show more status
+⍝ 2022 02 24 Adam:  note about launching admin
 
 ⍝∇:require =\WinReg.dyalog
 
