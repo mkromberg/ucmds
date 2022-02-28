@@ -330,7 +330,7 @@
 
     ∇ r←CurrentAssociations fmt;keys;labels;i;m;n;defaults;t
       ⍝ Report on existing associations found in the registry
-     
+      
       ⍝ Set up a list of keys representing different kinds of association
      
       keys←PreviewSource PreviewWS,¨⊂'\LocalServer32'
@@ -665,7 +665,7 @@
 
     ∇ (ok Args)←SelectGui(vers curr Args);Text;Y;X;vers;size;listx;neither;line1;i;type;dws;dyapp;dyalog;Applications;f;z;ok;users;selected;done;cap
     ⍝ Creates GUI
-     
+
       Text←('Current associations for ',(1 ⎕C Args.user),(' user',(Args.user≡'all')/'s'),':')''
       Text,←FmtCurrent curr
       Text,←'' 'Select instance to associate:'
@@ -716,7 +716,7 @@
     ∇
 
     ∇ Text←FmtCurrent curr;dws;dyapp;dyalog;script;dir;pv;i
-      i←curr[;1]⍳'dws' 'dyapp' 'dyalog' 'dyalogscript' 'Directories' 'Source Preview'
+      i←curr[;1]⍳'dws' 'dyapp' 'source' 'dyalogscript' 'Directories' 'Source Preview'
       (dws dyapp dyalog script dir pv)←(curr[;2],⊂'(none)')[i]
      
       Text←⊂'      Scripts             (.apls)                    ',script
