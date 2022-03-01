@@ -1,4 +1,4 @@
-﻿:Namespace efa ⍝ V3.11
+﻿:Namespace efa ⍝ V3.12
 ⍝ Changes the associations of .dws, .dyapp, .apl? and .dyalog files
 ⍝
 ⍝ 2022 01 20 MKrom: Complete rewrite for v18.2
@@ -14,6 +14,7 @@
 ⍝ 2022 02 05 MKrom: v3.09 Fix #19 #20 #21: allow "current" and improve "status" output
 ⍝ 2022 02 07 Adam:  Update documentation accordingly, and show more status
 ⍝ 2022 02 24 Adam:  note about launching admin
+⍝ 2022 03 01 MKrom: "dyalog"→"source"
 
 ⍝∇:require =\WinReg.dyalog
 
@@ -343,7 +344,7 @@
 
     ∇ r←CurrentAssociations fmt;keys;labels;i;m;n;defaults;t;dir
       ⍝ Report on existing associations found in the registry
-      
+     
       ⍝ Set up a list of keys representing different kinds of association
      
       keys←PreviewSource PreviewWS,¨⊂'\LocalServer32'
@@ -688,7 +689,7 @@
 
     ∇ (ok Args)←SelectGui(vers curr Args);Text;Y;X;vers;size;listx;neither;line1;i;type;dws;dyapp;dyalog;Applications;f;z;ok;users;selected;done;cap
     ⍝ Creates GUI
-
+     
       Text←('Current associations for ',(1 ⎕C Args.user),(' user',(Args.user≡'all')/'s'),':')''
       Text,←FmtCurrent curr
       Text,←'' 'Select instance to associate:'
@@ -912,4 +913,4 @@
 
     :EndSection
 
-:EndNamespace ⍝ EditFileAssociations  $Revision: 1763 $
+:EndNamespace ⍝ EditFileAssociations  $Revision: 1774 $
